@@ -1,7 +1,70 @@
+use std::{
+    fs::{self},
+    path::{Path, PathBuf},
+};
+use structopt::StructOpt;
+
+/// The main method, entry point to the app
 fn main() {
-    ()
+    let opt = Opt::from_args_safe();
+
+    match opt {
+        Ok(args) => {
+            validate_args(&args.file_name, &args.output);
+            let file_contents = read_file(&args.file_name);
+            let symbols = get_ticker_symbols(&file_contents);
+        }
+        Err(e) => println!("{e}"),
+    }
 }
 
+/// Struct used to manager the command line inputs
+#[derive(StructOpt)]
+#[structopt(
+    name = "ticker",
+    about = "reads from the supplied file name, gets the last month of ticker data from yahoo finance and places the ticker information in the output file under the name of the ticker symbol"
+)]
+struct Opt {
+    /// input file
+    #[structopt(parse(from_os_str), required(true))]
+    file_name: PathBuf,
+    #[structopt(parse(from_os_str), required(true))]
+    output: PathBuf,
+}
+
+/// Method to read the data from the file and return a string of the data
+fn read_file(file_name: &PathBuf) -> String {
+    let result = fs::read_to_string(file_name);
+    match result {
+        Ok(s) => return s,
+        Err(_) => panic!("file_name cannot be opened"),
+    }
+}
+
+/// Method that makes sure the file and directory exist and that the directory can be written to
+fn validate_args(file_name: &PathBuf, output_dir: &PathBuf) {
+    let file_exists = Path::exists(file_name);
+    if !file_exists {
+        panic!("file_name does not exist");
+    }
+
+    let dir_exists = Path::exists(&output_dir);
+    if !dir_exists {
+        panic!("output directory does not exist");
+    }
+
+    let dir_metadata = fs::metadata(output_dir);
+    match dir_metadata {
+        Ok(md) => {
+            if md.permissions().readonly() {
+                panic!("you do not have permission to change the output directory");
+            }
+        }
+        Err(e) => panic!("{e}"),
+    }
+}
+
+/// method to separate ticker symbols from a text string
 fn get_ticker_symbols<'a>(test_data: &'a str) -> Vec<&'a str> {
     let mut ret = Vec::new();
     let symbols = test_data.split(',');
@@ -16,6 +79,7 @@ fn get_ticker_symbols<'a>(test_data: &'a str) -> Vec<&'a str> {
     ret
 }
 
+/// Tests
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -32,6 +96,11 @@ mod tests {
 
     fn vectors_are_equal(v1: Vec<&str>, v2: Vec<&str>) -> bool {
         if v1.iter().count() != v2.iter().count() {
+            println!(
+                "counts are not equal v1={} v2 = {}",
+                v1.iter().count(),
+                v2.iter().count()
+            );
             return false;
         }
 
@@ -53,6 +122,74 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "file_name cannot be opened")]
+    fn main_invalid_file_panics() {
+        // assign
+        let file_name = PathBuf::from(".");
+
+        // act
+        read_file(&file_name);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    fn validate_args_good_file_and_directory() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+
+        // act
+        validate_args(&file_name, &dir);
+
+        // assert
+        assert!(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "file_name does not exist")]
+    fn validate_args_file_does_not_exist() {
+        // assign
+        let file_name = PathBuf::from("badtestdata.txt");
+        let dir = PathBuf::from(".");
+
+        // act
+        validate_args(&file_name, &dir);
+
+        // assert
+        assert!(false)
+    }
+
+    #[test]
+    #[should_panic(expected = "output directory does not exist")]
+    fn validate_args_directory_does_not_exist() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from("baddirectory");
+
+        // act
+        validate_args(&file_name, &dir);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    #[should_panic(expected = "you do not have permission to change the output directory")]
+    fn validate_args_directory_does_not_have_permissions() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from("/dev");
+
+        // act
+        validate_args(&file_name, &dir);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
     fn get_ticker_symbols_11_items() {
         // assign
         let test_data = read_test_data();
@@ -63,9 +200,46 @@ mod tests {
         // act
         let actual = get_ticker_symbols(&test_data);
 
-        println!("expected: {:?}\nactual: {:?}", expected, actual);
-
         // assert
         assert!(vectors_are_equal(expected, actual), "vectors are not equal");
+    }
+
+    #[test]
+    fn get_ticker_symbols_empty_string() {
+        // assign
+        let test_data = "";
+        let expected = Vec::new();
+
+        // act
+        let actual = get_ticker_symbols(test_data);
+
+        // assert
+        assert!(vectors_are_equal(expected, actual));
+    }
+
+    #[test]
+    fn get_ticker_symbols_one_item() {
+        // assign
+        let test_data = "AACG";
+        let expected = vec!["AACG"];
+
+        // act
+        let actual = get_ticker_symbols(test_data);
+
+        // assert
+        assert!(vectors_are_equal(expected, actual));
+    }
+
+    #[test]
+    fn get_ticker_symbols_many_items_with_extra_newlines() {
+        // assign
+        let test_data = "\nAACG,AADI,\n,\n,\n,AADR";
+        let expected = vec!["AACG", "AADI", "AADR"];
+
+        // act
+        let actual = get_ticker_symbols(test_data);
+
+        // assert
+        assert!(vectors_are_equal(expected, actual));
     }
 }
