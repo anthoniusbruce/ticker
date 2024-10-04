@@ -4,7 +4,7 @@ use std::{
 };
 use structopt::StructOpt;
 use tokio::runtime::Builder;
-use yahoo_finance_api::{time::OffsetDateTime, Quote, YahooError};
+use yahoo_finance_api::{time::OffsetDateTime, Quote};
 
 /// The main method, entry point to the app
 fn main() {
@@ -48,20 +48,37 @@ fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf) {
     }
 }
 
-/// Method to get that quotes over a duration for a given ticker symbol
-fn get_quotes(
-    symbol: &str,
-    start: &OffsetDateTime,
-    end: &OffsetDateTime,
-) -> Result<Vec<Quote>, YahooError> {
-    let provider = yahoo_finance_api::YahooConnector::new()?;
-    let resp = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(provider.get_quote_history(symbol, *start, *end))?;
+fn log<T: std::fmt::Debug>(info: T) {
+    println!("{:?}", info);
+}
 
-    Ok(resp.quotes()?)
+/// Method to get that quotes over a duration for a given ticker symbol
+fn get_quotes(symbol: &str, start: &OffsetDateTime, end: &OffsetDateTime) -> Vec<Quote> {
+    let quotes = Vec::new();
+    let provider_result = yahoo_finance_api::YahooConnector::new();
+    match provider_result {
+        Err(e) => log(e),
+        Ok(provider) => {
+            let builder_result = Builder::new_current_thread().enable_all().build();
+            match builder_result {
+                Err(e) => log(e),
+                Ok(builder) => {
+                    let resp_result =
+                        builder.block_on(provider.get_quote_history(symbol, *start, *end));
+                    match resp_result {
+                        Err(e) => log(e),
+                        Ok(resp) => match resp.quotes() {
+                            Err(e) => log(e),
+                            Ok(response) => {
+                                return response;
+                            }
+                        },
+                    }
+                }
+            }
+        }
+    }
+    quotes
 }
 
 /// Method to read the data from the file and return a string of the data
