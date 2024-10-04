@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use structopt::StructOpt;
+use tokio::runtime::Builder;
+use yahoo_finance_api::{time::OffsetDateTime, Quote, YahooError};
 
 /// The main method, entry point to the app
 fn main() {
@@ -13,6 +15,7 @@ fn main() {
             validate_args(&args.file_name, &args.output);
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
+            process_symbols(symbols, &args.output);
         }
         Err(e) => println!("{e}"),
     }
@@ -30,6 +33,35 @@ struct Opt {
     file_name: PathBuf,
     #[structopt(parse(from_os_str), required(true))]
     output: PathBuf,
+}
+
+/// using the list of symbols get the daily quotes for the past month
+fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf) {
+    for symbol in symbols {
+        let one_day = time::Duration::days(1);
+        let one_month = time::Duration::days(30);
+        let today = OffsetDateTime::now_utc();
+        let end_date = today - one_day;
+        let start_date = end_date - one_month;
+        let quotes = get_quotes(symbol, &start_date, &end_date);
+        println!("{symbol}:\n{:?}", quotes);
+    }
+}
+
+/// Method to get that quotes over a duration for a given ticker symbol
+fn get_quotes(
+    symbol: &str,
+    start: &OffsetDateTime,
+    end: &OffsetDateTime,
+) -> Result<Vec<Quote>, YahooError> {
+    let provider = yahoo_finance_api::YahooConnector::new()?;
+    let resp = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(provider.get_quote_history(symbol, *start, *end))?;
+
+    Ok(resp.quotes()?)
 }
 
 /// Method to read the data from the file and return a string of the data
