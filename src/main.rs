@@ -13,7 +13,7 @@ fn main() {
 
     match opt {
         Ok(args) => {
-            validate_args(&args.file_name, &args.output);
+            validate_args(&args.file_name, &args.output, &args.log_file);
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
             process_symbols(symbols, &args.output);
@@ -34,6 +34,8 @@ struct Opt {
     file_name: PathBuf,
     #[structopt(parse(from_os_str), required(true))]
     output: PathBuf,
+    #[structopt(parse(from_os_str), required(true))]
+    log_file: PathBuf,
 }
 
 /// using the list of symbols get the daily quotes for the past month
@@ -127,7 +129,7 @@ fn read_file(file_name: &PathBuf) -> String {
 }
 
 /// Method that makes sure the file and directory exist and that the directory can be written to
-fn validate_args(file_name: &PathBuf, output_dir: &PathBuf) {
+fn validate_args(file_name: &PathBuf, output_dir: &PathBuf, log_file: &PathBuf) {
     let file_exists = Path::exists(file_name);
     if !file_exists {
         panic!("file_name does not exist");
@@ -138,11 +140,29 @@ fn validate_args(file_name: &PathBuf, output_dir: &PathBuf) {
         panic!("output directory does not exist");
     }
 
-    let dir_metadata = fs::metadata(output_dir);
-    match dir_metadata {
+    match fs::metadata(output_dir) {
         Ok(md) => {
             if md.permissions().readonly() {
-                panic!("you do not have permission to change the output directory");
+                panic!("you do not have permission to write to the output directory");
+            }
+        }
+        Err(e) => panic!("{e}"),
+    }
+
+    let mut log = log_file.clone();
+    let mut log_exists = Path::exists(&log);
+    if !log_exists {
+        log.pop();
+        log_exists = Path::exists(&log);
+    }
+    if !log_exists {
+        panic!("log directory does not exist");
+    }
+
+    match fs::metadata(log) {
+        Ok(md) => {
+            if md.permissions().readonly() {
+                panic!("you do not have permission to the log file")
             }
         }
         Err(e) => panic!("{e}"),
@@ -304,13 +324,14 @@ mod tests {
     }
 
     #[test]
-    fn validate_args_good_file_and_directory() {
+    fn validate_args_good_file_and_directory_and_log() {
         // assign
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
 
         // act
-        validate_args(&file_name, &dir);
+        validate_args(&file_name, &dir, &log);
 
         // assert
         assert!(true);
@@ -322,9 +343,10 @@ mod tests {
         // assign
         let file_name = PathBuf::from("badtestdata.txt");
         let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
 
         // act
-        validate_args(&file_name, &dir);
+        validate_args(&file_name, &dir, &log);
 
         // assert
         assert!(false)
@@ -336,23 +358,99 @@ mod tests {
         // assign
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from("baddirectory");
+        let log = PathBuf::from("testdata.txt");
 
         // act
-        validate_args(&file_name, &dir);
+        validate_args(&file_name, &dir, &log);
 
         // assert
         assert!(false);
     }
 
     #[test]
-    #[should_panic(expected = "you do not have permission to change the output directory")]
+    #[should_panic(expected = "you do not have permission to write to the output directory")]
     fn validate_args_directory_does_not_have_permissions() {
         // assign
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from("/dev");
+        let log = PathBuf::from("testdata.txt");
 
         // act
-        validate_args(&file_name, &dir);
+        validate_args(&file_name, &dir, &log);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    #[should_panic(expected = "log directory does not exist")]
+    fn validate_args_log_dir_does_not_exist() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("noexist/noexist.txt");
+
+        // act
+        validate_args(&file_name, &dir, &log);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    #[should_panic(expected = "log directory does not exist")]
+    fn validate_args_no_log_dir() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("noexist.txt");
+
+        // act
+        validate_args(&file_name, &dir, &log);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    fn validate_args_good_file_and_directory_and_no_log_file() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("./noexist.txt");
+
+        // act
+        validate_args(&file_name, &dir, &log);
+
+        // assert
+        assert!(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "you do not have permission to the log file")]
+    fn validate_args_log_file_does_not_have_permissions() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("readonly.txt");
+
+        // act
+        validate_args(&file_name, &dir, &log);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    #[should_panic(expected = "you do not have permission to the log file")]
+    fn validate_args_log_directory_does_not_have_permissions() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("/dev/log.txt");
+
+        // act
+        validate_args(&file_name, &dir, &log);
 
         // assert
         assert!(false);
