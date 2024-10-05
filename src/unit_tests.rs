@@ -1,6 +1,6 @@
 /// Tests
 #[cfg(test)]
-pub mod unit_tests {
+mod unit_tests {
     use std::{fs, path::PathBuf};
 
     use yahoo_finance_api::Quote;
