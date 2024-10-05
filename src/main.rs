@@ -1,11 +1,15 @@
 use csv::Writer;
 use std::{
-    fs::{self, File},
+    cell::RefCell,
+    fs::{self, File, OpenOptions},
+    io::Write,
     path::{Path, PathBuf},
 };
 use structopt::StructOpt;
 use tokio::runtime::Builder;
 use yahoo_finance_api::{time::OffsetDateTime, Quote};
+
+thread_local! {static LOG_FILE_PATH:RefCell<Option<PathBuf>> = RefCell::new(None::<PathBuf>)}
 
 /// The main method, entry point to the app
 fn main() {
@@ -14,6 +18,8 @@ fn main() {
     match opt {
         Ok(args) => {
             validate_args(&args.file_name, &args.output, &args.log_file);
+            let log_file_path = args.log_file.clone();
+            LOG_FILE_PATH.with(|path| *path.borrow_mut() = Some(log_file_path));
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
             process_symbols(symbols, &args.output);
@@ -87,7 +93,29 @@ fn get_gain(quote: Quote) -> f64 {
 
 /// convenience function to log trouble without interrupting things
 fn log<T: std::fmt::Debug>(info: T) {
-    println!("{:?}", info);
+    let timestamp = OffsetDateTime::now_utc();
+    let message = format!(
+        "TS: {} {}: {:?}\n",
+        timestamp.date(),
+        timestamp.time(),
+        info
+    );
+    LOG_FILE_PATH.with(|path| {
+        let opt = path.borrow().clone();
+        match opt {
+            Some(log_file_path) => {
+                let mut file = OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(log_file_path)
+                    .unwrap();
+                file.write(message.as_bytes()).unwrap();
+            }
+            None => {
+                println!("{}", message);
+            }
+        }
+    });
 }
 
 /// Method to get that quotes over a duration for a given ticker symbol
@@ -108,6 +136,13 @@ fn get_quotes(symbol: &str, start: &OffsetDateTime, end: &OffsetDateTime) -> Vec
                         Ok(resp) => match resp.quotes() {
                             Err(e) => log(e),
                             Ok(response) => {
+                                let message = format!(
+                                    "Success: {} {} - {}",
+                                    symbol,
+                                    start.date(),
+                                    end.date(),
+                                );
+                                log(message);
                                 return response;
                             }
                         },
