@@ -53,13 +53,11 @@ fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf) {
         let end_date = today - one_day;
         let start_date = end_date - one_month;
         let quotes = get_quotes(symbol, &start_date, &end_date);
-        println!("{symbol}:\n{:?}", quotes);
         let mut gains = Vec::new();
         for quote in quotes {
             let gain = get_gain(quote);
             gains.push(gain);
         }
-        println!("{symbol}: {:?}", gains);
         save_gains(output_dir, symbol, gains);
     }
 }
