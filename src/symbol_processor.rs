@@ -47,9 +47,13 @@ pub mod symbol_processor {
         }
     }
 
-    /// converts Quote to the single value of the gain of the day (+/-)
+    /// converts Quote to the single value of the gain of the day (+/-) as a factor of the overall starting quote
     pub(crate) fn get_gain(quote: Quote) -> f64 {
-        quote.close - quote.open
+        if quote.open == 0.0 {
+            return 0.0;
+        }
+
+        (quote.close - quote.open) / quote.open
     }
 
     /// Method to get that quotes over a duration for a given ticker symbol

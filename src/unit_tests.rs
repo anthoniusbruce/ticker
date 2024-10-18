@@ -55,7 +55,7 @@ mod unit_tests {
             volume: 0,
             adjclose: 0.0,
         };
-        let expected = 0.5;
+        let expected = 1.0;
 
         // act
         let actual = get_gain(quote);
@@ -76,7 +76,7 @@ mod unit_tests {
             volume: 0,
             adjclose: 0.0,
         };
-        let expected = -1.5;
+        let expected = -0.6;
 
         // act
         let actual = get_gain(quote);
