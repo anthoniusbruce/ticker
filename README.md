@@ -13,3 +13,11 @@
 
 ```bash
 ticker <file-name> <output> <log-file>
+
+## Example
+ticker tickers.csv output/ ticker.log
+In this example:
+- tickers.csv is the input file containing ticker symbols.
+- output/ is the directory where the daily stock information for each ticker will be written.
+- ticker.log is the log file that records application logs and any errors encountered during execution.
+
