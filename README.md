@@ -1,15 +1,15 @@
-ticker 0.1.0
-Reads from the supplied file name, gets the last month of ticker data from Yahoo Finance, and places the ticker
-information in the output file under the name of the ticker symbol.
+# Ticker
 
-USAGE:
-    ticker <file-name> <output> <log-file>
+**Ticker** is a command-line application written in Rust that retrieves historical stock ticker data from Yahoo Finance. The application reads ticker symbols from a file, fetches the last month of data for each ticker, and outputs the daily gains or losses for each ticker symbol into a specified output directory.
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+## Features
 
-ARGS:
-    <file-name>    The input file with ticker symbols
-    <output>       The output directory for ticker data
-    <log-file>     The file where logs will be written
+- Fetches historical stock data from Yahoo Finance using the `yahoo_finance` module.
+- Reads ticker symbols from a provided file.
+- Outputs daily stock gains or losses into individual files named after the ticker symbols.
+- Supports logging with a customizable log file.
+
+## Usage
+
+```bash
+ticker <file-name> <output> <log-file>
