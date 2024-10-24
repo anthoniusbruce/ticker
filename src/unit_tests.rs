@@ -146,12 +146,90 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("testdata.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(true);
+    }
+
+    #[test]
+    fn validate_args_good_file_and_directory_and_log_threads_is_10() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
+        let threads = Some(10);
+
+        // act
+        validate_args(&file_name, &dir, &log, threads);
+
+        // assert
+        assert!(true);
+    }
+
+    #[test]
+    fn validate_args_good_file_and_directory_and_log_threads_is_3() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
+        let threads = Some(3);
+
+        // act
+        validate_args(&file_name, &dir, &log, threads);
+
+        // assert
+        assert!(true);
+    }
+
+    #[test]
+    fn validate_args_good_file_and_directory_and_log_threads_is_2() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
+        let threads = Some(2);
+
+        // act
+        validate_args(&file_name, &dir, &log, threads);
+
+        // assert
+        assert!(true);
+    }
+
+    #[test]
+    #[should_panic(expected = "threads needs to be more than 1")]
+    fn validate_args_good_file_and_directory_and_log_threads_is_1() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
+        let threads = Some(1);
+
+        // act
+        validate_args(&file_name, &dir, &log, threads);
+
+        // assert
+        assert!(false);
+    }
+
+    #[test]
+    #[should_panic(expected = "threads needs to be more than 1")]
+    fn validate_args_good_file_and_directory_and_log_threads_is_0() {
+        // assign
+        let file_name = PathBuf::from("testdata.txt");
+        let dir = PathBuf::from(".");
+        let log = PathBuf::from("testdata.txt");
+        let threads = Some(0);
+
+        // act
+        validate_args(&file_name, &dir, &log, threads);
+
+        // assert
+        assert!(false);
     }
 
     #[test]
@@ -161,9 +239,10 @@ mod unit_tests {
         let file_name = PathBuf::from("badtestdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("testdata.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false)
@@ -176,9 +255,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from("baddirectory");
         let log = PathBuf::from("testdata.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);
@@ -191,9 +271,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from("/dev");
         let log = PathBuf::from("testdata.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);
@@ -206,9 +287,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("noexist/noexist.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);
@@ -221,9 +303,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("noexist.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);
@@ -235,9 +318,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("./noexist.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(true);
@@ -250,9 +334,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("readonly.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);
@@ -265,9 +350,10 @@ mod unit_tests {
         let file_name = PathBuf::from("testdata.txt");
         let dir = PathBuf::from(".");
         let log = PathBuf::from("/dev/log.txt");
+        let threads = None;
 
         // act
-        validate_args(&file_name, &dir, &log);
+        validate_args(&file_name, &dir, &log, threads);
 
         // assert
         assert!(false);

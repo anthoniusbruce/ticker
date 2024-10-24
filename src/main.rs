@@ -27,6 +27,8 @@ struct Opt {
     output: PathBuf,
     #[structopt(parse(from_os_str), required(true))]
     log_file: PathBuf,
+    #[structopt(short)]
+    threads: Option<u8>,
 }
 
 /// The main method, entry point to the app
@@ -35,7 +37,7 @@ fn main() {
 
     match opt {
         Ok(args) => {
-            validate_args(&args.file_name, &args.output, &args.log_file);
+            validate_args(&args.file_name, &args.output, &args.log_file, args.threads);
             let log_file_path = args.log_file.clone();
             {
                 let mut log_path = LOG_FILE_PATH2.lock().unwrap();
@@ -43,7 +45,7 @@ fn main() {
             }
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
-            process_symbols(symbols, &args.output);
+            process_symbols(symbols, &args.output, args.threads);
         }
         Err(e) => println!("{e}"),
     }
@@ -88,7 +90,16 @@ fn read_file(file_name: &PathBuf) -> String {
 }
 
 /// Method that makes sure the file and directory exist and that the directory can be written to
-fn validate_args(file_name: &PathBuf, output_dir: &PathBuf, log_file: &PathBuf) {
+fn validate_args(
+    file_name: &PathBuf,
+    output_dir: &PathBuf,
+    log_file: &PathBuf,
+    threads: Option<u8>,
+) {
+    if threads != None && threads < Some(2) {
+        panic!("threads needs to be more than 1")
+    }
+
     let file_exists = Path::exists(file_name);
     if !file_exists {
         panic!("file_name does not exist");

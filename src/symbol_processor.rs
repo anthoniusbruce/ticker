@@ -8,48 +8,52 @@ pub mod symbol_processor {
     use crate::log;
 
     /// using the list of symbols get the daily quotes for the past month
-    pub fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf) {
+    pub fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf, threads: Option<u8>) {
         let one_day = time::Duration::days(1);
         let one_month = time::Duration::days(30);
         let today = OffsetDateTime::now_utc();
         let end_date = today - one_day;
         let start_date = end_date - one_month;
         let total_count = symbols.len();
-        let thread_count: usize = 10;
         let mut index: usize = 0;
 
         log("ticker", "begin");
 
-        while index < total_count {
-            let (tx, rx) = mpsc::channel();
+        match threads {
+            Some(thread_count) => {
+                while index < total_count {
+                    let (tx, rx) = mpsc::channel();
 
-            let start = index;
-            let end = start + thread_count;
-            for x in start..end {
-                if x < total_count {
-                    let symbol = String::from(symbols[x]);
-                    let out_dir = output_dir.clone();
-                    let tx_clone = tx.clone();
+                    let start = index;
+                    let end = start + thread_count as usize;
+                    for x in start..end {
+                        if x < total_count {
+                            let symbol = String::from(symbols[x]);
+                            let out_dir = output_dir.clone();
+                            let tx_clone = tx.clone();
+                            thread::spawn(move || {
+                                process_one_symbol(&symbol, &out_dir, start_date, end_date);
+                                tx_clone.send(0).unwrap();
+                            });
+                        } else {
+                            break;
+                        }
+                    }
                     thread::spawn(move || {
-                        process_one_symbol(&symbol, &out_dir, start_date, end_date);
-                        tx_clone.send(0).unwrap();
+                        tx.send(0).unwrap();
                     });
-                } else {
-                    break;
+
+                    for _received in rx {}
+
+                    index += thread_count as usize;
                 }
             }
-            thread::spawn(move || {
-                tx.send(0).unwrap();
-            });
-
-            for _received in rx {}
-
-            index += thread_count;
+            None => {
+                for symbol in symbols {
+                    process_one_symbol(symbol, output_dir, start_date, end_date);
+                }
+            }
         }
-
-        // for symbol in symbols {
-        //     process_one_symbol(symbol, output_dir, start_date, end_date);
-        // }
 
         log("ticker", "end");
     }
