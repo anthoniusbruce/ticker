@@ -1,5 +1,5 @@
 pub mod symbol_processor {
-    use std::{fs::File, path::PathBuf};
+    use std::{fs::File, path::PathBuf, sync::mpsc, thread};
 
     use csv::Writer;
     use tokio::runtime::Builder;
@@ -14,9 +14,44 @@ pub mod symbol_processor {
         let today = OffsetDateTime::now_utc();
         let end_date = today - one_day;
         let start_date = end_date - one_month;
-        for symbol in symbols {
-            process_one_symbol(symbol, output_dir, start_date, end_date);
+        let total_count = symbols.len();
+        let thread_count: usize = 10;
+        let mut index: usize = 0;
+
+        log("ticker", "begin");
+
+        while index < total_count {
+            let (tx, rx) = mpsc::channel();
+
+            let start = index;
+            let end = start + thread_count;
+            for x in start..end {
+                if x < total_count {
+                    let symbol = String::from(symbols[x]);
+                    let out_dir = output_dir.clone();
+                    let tx_clone = tx.clone();
+                    thread::spawn(move || {
+                        process_one_symbol(&symbol, &out_dir, start_date, end_date);
+                        tx_clone.send(0).unwrap();
+                    });
+                } else {
+                    break;
+                }
+            }
+            thread::spawn(move || {
+                tx.send(0).unwrap();
+            });
+
+            for _received in rx {}
+
+            index += thread_count;
         }
+
+        // for symbol in symbols {
+        //     process_one_symbol(symbol, output_dir, start_date, end_date);
+        // }
+
+        log("ticker", "end");
     }
 
     /// Function that will process 1 symbol from http call to yahoo to save the file to local storage

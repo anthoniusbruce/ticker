@@ -1,9 +1,9 @@
 use crate::symbol_processor::symbol_processor::process_symbols;
 use std::{
-    cell::RefCell,
     fs::{self, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
+    sync::Mutex,
 };
 use structopt::StructOpt;
 use yahoo_finance_api::time::OffsetDateTime;
@@ -11,7 +11,7 @@ use yahoo_finance_api::time::OffsetDateTime;
 mod symbol_processor;
 mod unit_tests;
 
-thread_local! {static LOG_FILE_PATH:RefCell<Option<PathBuf>> = RefCell::new(None::<PathBuf>)}
+static LOG_FILE_PATH2: Mutex<Option<PathBuf>> = Mutex::new(None::<PathBuf>);
 
 /// Struct used to manager the command line inputs
 #[derive(StructOpt)]
@@ -37,7 +37,10 @@ fn main() {
         Ok(args) => {
             validate_args(&args.file_name, &args.output, &args.log_file);
             let log_file_path = args.log_file.clone();
-            LOG_FILE_PATH.with(|path| *path.borrow_mut() = Some(log_file_path));
+            {
+                let mut log_path = LOG_FILE_PATH2.lock().unwrap();
+                *log_path = Some(log_file_path.clone());
+            }
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
             process_symbols(symbols, &args.output);
@@ -56,8 +59,9 @@ fn log<T: std::fmt::Debug>(symbol: &str, info: T) {
         symbol,
         info
     );
-    LOG_FILE_PATH.with(|path| {
-        let opt = path.borrow().clone();
+    {
+        let result = LOG_FILE_PATH2.lock().unwrap();
+        let opt = result.clone();
         match opt {
             Some(log_file_path) => {
                 let mut file = OpenOptions::new()
@@ -71,7 +75,7 @@ fn log<T: std::fmt::Debug>(symbol: &str, info: T) {
                 println!("{}", message);
             }
         }
-    });
+    }
 }
 
 /// Method to read the data from the file and return a string of the data
