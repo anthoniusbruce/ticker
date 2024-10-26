@@ -8,11 +8,20 @@ pub mod symbol_processor {
     use crate::log;
 
     /// using the list of symbols get the daily quotes for the past month
-    pub fn process_symbols(symbols: Vec<&str>, output_dir: &PathBuf, threads: Option<u8>) {
+    pub fn process_symbols(
+        symbols: Vec<&str>,
+        output_dir: &PathBuf,
+        threads: Option<u8>,
+        days_ago: Option<u32>,
+    ) {
         let one_day = time::Duration::days(1);
         let one_month = time::Duration::days(30);
-        let today = OffsetDateTime::now_utc();
-        let end_date = today - one_day;
+        let mut the_day = OffsetDateTime::now_utc();
+        if days_ago != None {
+            let backup_days = time::Duration::days(days_ago.unwrap() as i64);
+            the_day -= backup_days;
+        }
+        let end_date = the_day - one_day;
         let start_date = end_date - one_month;
         let total_count = symbols.len();
         let mut index: usize = 0;

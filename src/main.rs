@@ -29,6 +29,8 @@ struct Opt {
     log_file: PathBuf,
     #[structopt(short)]
     threads: Option<u8>,
+    #[structopt(short)]
+    days_ago: Option<u32>,
 }
 
 /// The main method, entry point to the app
@@ -45,7 +47,7 @@ fn main() {
             }
             let file_contents = read_file(&args.file_name);
             let symbols = get_ticker_symbols(&file_contents);
-            process_symbols(symbols, &args.output, args.threads);
+            process_symbols(symbols, &args.output, args.threads, args.days_ago);
         }
         Err(e) => println!("{e}"),
     }
@@ -97,7 +99,7 @@ fn validate_args(
     threads: Option<u8>,
 ) {
     if threads != None && threads < Some(2) {
-        panic!("threads needs to be more than 1")
+        panic!("threads needs to be more than 1");
     }
 
     let file_exists = Path::exists(file_name);
