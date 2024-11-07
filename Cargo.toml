@@ -7,5 +7,5 @@ edition = "2021"
 csv = "1.1"
 structopt = { version = "0.3", default-features = false}
 time = "0.3.36"
-tokio = "1.41.0"
+tokio = "1.41.1"
 yahoo_finance_api = "2.3.0"
